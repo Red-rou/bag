@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        *{
+            padding: 0; margin: 0;
+        }
+        .home,#root,body, html{
+            height: 100%;
+            height: 100%;
+        }
+        .home{
+            background: rgb(198, 198, 252);
+        }
+        .login-window{
+            width: 390px;
+            box-sizing: border-box;
+            padding: 20px;
+            background: #fff;
+            position: absolute;
+            left: 200px; top: 100px;
+            box-shadow: 0 0 8px #fff;
+            border-radius: 4px;
+        }
+        .login-window>h2{
+            border-bottom: 1px solid #999;
+            padding-bottom: 15px;
+            font-size: 18px; font-weight:400;
+            color: #666;
+            text-align: center;
+        }
+        .login-window>input,.login-window>button{
+            display: block;
+            box-sizing: border-box;
+            width: 80%;height: 42px;line-height: 42px;
+            margin: 15px auto 0;
+            font-size: 14px; color: #666;
+            outline: none;
+        }
+        .input-error{
+            border: 1px solid red;
+            box-shadow: 2px 2px 8px rgba(255, 0, 0, 0.233);
+        }
+
+
+        .login-window>button{
+            cursor: pointer;
+            background: #2cc64d;
+            color: #fff;
+            border: 1px solid #2cc64d;
+            outline: none;
+        }
+        .login-window>button:hover{
+            box-shadow: 4px 4px 8px #2cc64d67;
+        }
+        .login-window>input{
+            text-indent: .5em;
+        }
+        .loginInfo{
+            text-align: center;
+            font-size: 12px;
+            height: 30px;line-height: 30px;
+            color: green;
+        }
+        .loginInfo-error{
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id='root'></div>
+    
+    <script src="./js/react.development.js"></script>
+    <script src="./js/react-dom.development.js"></script>
+    <script src="./js/babel.min.js"></script>
+    
+    <script src="./js/cookie.js"></script>
+    <script src="./js/base64.js"></script>
+
+    <script type='text/babel'>
+    // console.log(cookie)
+        // Base64.decode
+        // let baStr =  Base64.encode('小明')
+        // console.log(baStr)
+        // baStr =  Base64.decode(baStr)
+        // console.log(baStr)
+
+    class LoginWindow extends React.Component{
+        constructor(props){
+            super(props)
+            this.state={
+                username:'',
+                pwd:'',
+                loginInfo:'',
+                classFlag:{
+                    uNameInputFlag:false, //用户名输入标记
+                    pwdInputFlag:false, //密码输入标记
+                }
+            }
+        }
+        render(){
+            return(<div className='login-window'>
+                <h2>用户登录</h2>
+                <input type='text' placeholder='用户名' className={this.state.classFlag.uNameInputFlag ? 'input-error' : ''}
+                     value={this.state.username}
+                    onChange={ev=>this.setState({'username':ev.target.value})}/>
+
+                <input type='password' placeholder='密码' className={this.state.classFlag.pwdInputFlag ? 'input-error' : ''}
+                     value={this.state.pwd}
+                onChange={ev=>this.setState({'pwd':ev.target.value})}/>
+
+                <button onClick={(ev)=>this.loginClick(ev)}>登录</button>
+                <div className={'登录成功' == this.state.loginInfo ? 'loginInfo': 'loginInfo loginInfo-error'}>
+                    {this.state.loginInfo}
+                </div>
+
+            </div>)
+        }
+        componentDidMount() {
+            const ck = cookie.getAll()
+            if(ck.hasOwnProperty('uName') && ck.hasOwnProperty('pwd')){
+                this.setState({
+                    username: Base64.decode(ck['uName']),
+                    pwd:Base64.decode(ck['pwd'])
+                })
+            }
+        }
+        
+
+
+        loginClick(ev){
+            if('' === this.state.username){
+                this.setState({
+                    classFlag:{
+                        uNameInputFlag:true, 
+                        pwdInputFlag:false, 
+                    } 
+                 })
+                return 
+            }else if('' === this.state.pwd){
+                this.setState({
+                    classFlag:{
+                        uNameInputFlag:false, 
+                        pwdInputFlag:true, 
+                    } 
+                })
+                return 
+            }
+            // 清除所有输入错误状态
+            this.setState({
+                classFlag:{
+                    uNameInputFlag:false, 
+                    pwdInputFlag:false, 
+                } 
+            })
+
+            fetch('http://192.168.6.224/test.php',{
+                // 请求方式
+                method:'POST',
+                // 请求头
+                headers:{
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                // 设置请求参数
+                body:`flag=login&username=${this.state.username}&pwd=${this.state.pwd}`
+
+            })
+            .then(res=>{return res.json()//数据转换为json
+            }).then(result=>{ //result 接收上面then res.json()中返回的数据结果
+                console.log(result) 
+                let info = '登录失败'
+                if('loginSuccess' === result.state){
+                    info = '登录成功'
+                    //使用base64加密数据
+                    let cookieValue =  Base64.encode(this.state.username)
+                    cookie.setCookie('uName', cookieValue ,1 * 60 * 24 * 7)
+                    cookieValue =  Base64.encode(this.state.pwd)
+                    cookie.setCookie('pwd',cookieValue,1 * 60 * 24 * 7)
+                }
+                this.setState({
+                    "loginInfo":info
+                })
+            }).catch(err=>{
+                console.log(err)
+            })
+
+
+
+
+        }
+    }
+
+
+    class Home extends React.Component{
+        constructor(props){
+            super(props)
+        }
+        render(){
+            return(<div className='home'>
+                <LoginWindow /> 
+            </div>)
+        }
+    }
+
+    ReactDOM.render( <Home ></Home> , document.getElementById('root'))
+    </script>
+</body>
+</html>
